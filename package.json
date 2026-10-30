@@ -11,7 +11,6 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
   },
-  "homepage": "https://Chintu1308.github.io/NewsHub/",
   "dependencies": {
     "axios": "^1.10.0",
     "lucide-react": "^0.344.0",

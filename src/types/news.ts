@@ -12,6 +12,11 @@ export interface NewsArticle {
   };
   category: 'general' | 'business' | 'entertainment' | 'health' | 'science' | 'sports' | 'technology' | 'politics' | 'world';
   author?: string;
+  readTime?: string;
+  isBreaking?: boolean;
+  isTrending?: boolean;
+  keyTakeaways?: string[];
+  photographerCredit?: string;
 }
 
 export interface NewsApiResponse {

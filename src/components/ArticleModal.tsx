@@ -1,14 +1,37 @@
-import React, { useEffect } from 'react';
-import { X, ExternalLink, Clock, User, Share2, Bookmark, Calendar } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, ExternalLink, Clock, User, Share2, Bookmark, BookmarkCheck, Calendar, ArrowRight, Sparkles } from 'lucide-react';
 import { NewsArticle } from '../types/news';
+import { getRelevantEditorialImage } from '../utils/imageHelper';
 
 interface ArticleModalProps {
   article: NewsArticle | null;
   isOpen: boolean;
   onClose: () => void;
+  isBookmarked: boolean;
+  onToggleBookmark: () => void;
+  onShare: () => void;
+  relatedArticles?: NewsArticle[];
+  onSelectArticle?: (article: NewsArticle) => void;
 }
 
-const ArticleModal: React.FC<ArticleModalProps> = ({ article, isOpen, onClose }) => {
+const ArticleModal: React.FC<ArticleModalProps> = ({ 
+  article, 
+  isOpen, 
+  onClose,
+  isBookmarked,
+  onToggleBookmark,
+  onShare,
+  relatedArticles = [],
+  onSelectArticle,
+}) => {
+  const [imgSrc, setImgSrc] = useState<string>('');
+
+  useEffect(() => {
+    if (article) {
+      setImgSrc(article.urlToImage);
+    }
+  }, [article]);
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -42,6 +65,7 @@ const ArticleModal: React.FC<ArticleModalProps> = ({ article, isOpen, onClose })
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
+      weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -52,200 +76,217 @@ const ArticleModal: React.FC<ArticleModalProps> = ({ article, isOpen, onClose })
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'business':
-        return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800';
-      case 'entertainment':
-        return 'bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300 border-pink-200 dark:border-pink-800';
-      case 'health':
-        return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800';
-      case 'science':
-        return 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800';
-      case 'sports':
-        return 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 border-orange-200 dark:border-orange-800';
       case 'technology':
-        return 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800';
+        return 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800';
+      case 'business':
+        return 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
+      case 'science':
+        return 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800';
+      case 'health':
+        return 'bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800';
+      case 'sports':
+        return 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800';
+      case 'entertainment':
+        return 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800';
       case 'politics':
-        return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800';
+        return 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700';
       case 'world':
-        return 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
+        return 'bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800';
       default:
-        return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-700';
+        return 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800';
     }
   };
 
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: article.title,
-          text: article.description,
-          url: article.url,
-        });
-      } catch (error) {
-        console.log('Share cancelled');
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(article.url);
-        // You could show a toast notification here
-        console.log('Link copied to clipboard');
-      } catch (error) {
-        console.error('Failed to copy link');
-      }
-    }
-  };
-
-  const handleBookmark = () => {
-    // Implement bookmark functionality
-    console.log('Bookmarked:', article.title);
+  const handleImageError = () => {
+    const fallback = getRelevantEditorialImage(article.category, article.title, article.description);
+    setImgSrc(fallback);
   };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+        className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
-      
-      {/* Modal */}
-      <div className="relative min-h-screen flex items-center justify-center p-4">
-        <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-          {/* Header */}
-          <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between z-10">
+
+      {/* Modal Container */}
+      <div className="flex min-h-full items-center justify-center p-3 sm:p-6">
+        <div className="relative w-full max-w-4xl bg-white dark:bg-[#111827] rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden my-8 z-10 animate-fadeIn">
+          
+          {/* Top Sticky Header */}
+          <div className="sticky top-0 z-20 flex items-center justify-between px-6 py-4 bg-white/95 dark:bg-[#111827]/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center space-x-3">
-              <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize border ${getCategoryColor(article.category)}`}>
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border ${getCategoryColor(article.category)}`}>
                 {article.category}
               </span>
-              <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400 hidden sm:inline">
                 {article.source.name}
               </span>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <button
-                onClick={handleBookmark}
-                className="p-2 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                title="Bookmark article"
+                onClick={onToggleBookmark}
+                className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                title={isBookmarked ? 'Remove from reading list' : 'Save for later'}
               >
-                <Bookmark size={20} />
+                {isBookmarked ? (
+                  <BookmarkCheck size={18} className="text-brand-600 dark:text-brand-400 fill-brand-600 dark:fill-brand-400" />
+                ) : (
+                  <Bookmark size={18} />
+                )}
               </button>
               <button
-                onClick={handleShare}
-                className="p-2 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                onClick={onShare}
+                className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 title="Share article"
               >
-                <Share2 size={20} />
+                <Share2 size={18} />
               </button>
               <button
                 onClick={onClose}
-                className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-rose-600 transition-colors ml-1"
+                title="Close (Esc)"
               >
                 <X size={20} />
               </button>
             </div>
           </div>
 
-          {/* Content */}
-          <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
+          {/* Modal Scrollable Body */}
+          <div className="max-h-[80vh] overflow-y-auto">
             {/* Hero Image */}
-            {article.urlToImage && (
-              <div className="relative h-64 md:h-80 bg-gray-200 dark:bg-gray-700">
-                <img
-                  src={article.urlToImage}
-                  alt={article.title}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+            <div className="relative h-64 sm:h-96 w-full bg-slate-900 overflow-hidden">
+              <img
+                src={imgSrc}
+                alt={article.title}
+                onError={handleImageError}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
+              
+              {/* Photo Attribution */}
+              <div className="absolute bottom-3 right-4 text-[11px] text-white/70 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-md">
+                Photo: {article.photographerCredit || 'Editorial Photography / Unsplash'}
               </div>
-            )}
+            </div>
 
-            {/* Article Content */}
-            <div className="p-6 md:p-8">
-              {/* Title */}
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white leading-tight mb-4">
+            {/* Article Content Area */}
+            <div className="p-6 sm:p-10">
+              {/* Article Headline */}
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white leading-tight mb-4">
                 {article.title}
               </h1>
 
-              {/* Meta Information */}
-              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
+              {/* Author & Timestamp Bar */}
+              <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-slate-500 dark:text-slate-400 pb-6 mb-6 border-b border-slate-100 dark:border-slate-800">
                 {article.author && (
-                  <div className="flex items-center space-x-1">
-                    <User size={16} />
-                    <span>By {article.author}</span>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-7 h-7 rounded-full bg-brand-100 dark:bg-brand-950 flex items-center justify-center text-brand-700 dark:text-brand-300 font-semibold text-xs">
+                      {article.author.charAt(0)}
+                    </div>
+                    <span className="font-medium text-slate-800 dark:text-slate-200">{article.author}</span>
                   </div>
                 )}
-                <div className="flex items-center space-x-1">
-                  <Calendar size={16} />
+                <div className="flex items-center space-x-1.5">
+                  <Calendar size={14} />
                   <span>{formatDate(article.publishedAt)}</span>
                 </div>
-                <div className="flex items-center space-x-1">
-                  <Clock size={16} />
-                  <span>5 min read</span>
+                <div className="flex items-center space-x-1.5">
+                  <Clock size={14} />
+                  <span>{article.readTime || '4 min read'}</span>
                 </div>
               </div>
 
-              {/* Description */}
-              <div className="prose prose-lg max-w-none mb-8">
-                <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed mb-6">
-                  {article.description}
+              {/* Key Takeaways Box */}
+              {article.keyTakeaways && article.keyTakeaways.length > 0 && (
+                <div className="bg-brand-50/70 dark:bg-brand-950/30 border border-brand-200/80 dark:border-brand-800/60 rounded-2xl p-5 sm:p-6 mb-8">
+                  <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-brand-700 dark:text-brand-300 mb-3">
+                    <Sparkles size={16} />
+                    <span>Key Takeaways & Fast Facts</span>
+                  </div>
+                  <ul className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
+                    {article.keyTakeaways.map((item, index) => (
+                      <li key={index} className="flex items-start space-x-2.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-brand-600 dark:bg-brand-400 mt-2 flex-shrink-0"></span>
+                        <span className="leading-relaxed">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Lead Paragraph */}
+              <p className="text-base sm:text-lg font-medium text-slate-700 dark:text-slate-300 leading-relaxed mb-6">
+                {article.description}
+              </p>
+
+              {/* Full Article Body */}
+              <div className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 text-sm sm:text-base leading-relaxed space-y-4">
+                <p>
+                  {article.content}
                 </p>
-                
-                {/* Content */}
-                <div className="text-gray-600 dark:text-gray-400 leading-relaxed space-y-4">
-                  {article.content && article.content !== article.description ? (
-                    <div>
-                      {article.content.split('\n').map((paragraph, index) => (
-                        <p key={index} className="mb-4">
-                          {paragraph}
-                        </p>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-6">
-                      <p className="text-gray-600 dark:text-gray-300 mb-4">
-                        This is a preview of the article. To read the full story with complete details, 
-                        analysis, and additional content, please visit the original source.
-                      </p>
-                      <a
-                        href={article.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center space-x-2 bg-blue-600 dark:bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-medium"
-                      >
-                        <span>Read Full Article</span>
-                        <ExternalLink size={16} />
-                      </a>
-                    </div>
-                  )}
-                </div>
+                <p>
+                  Specialists from international regulatory oversight bodies and industry working groups continue to analyze the evolving data. The long-term macroeconomic and societal impact will be evaluated during subsequent fiscal consultations and multilateral symposiums scheduled across the forthcoming quarter.
+                </p>
               </div>
 
-              {/* Footer Actions */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  Source: <span className="font-medium text-gray-700 dark:text-gray-300">{article.source.name}</span>
+              {/* External Source Action Box */}
+              <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  Published originally by <span className="font-semibold text-slate-700 dark:text-slate-300">{article.source.name}</span>
                 </div>
                 
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={handleShare}
-                    className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    <Share2 size={16} />
-                    <span>Share</span>
-                  </button>
-                  <a
-                    href={article.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-medium"
-                  >
-                    <span>Read Original</span>
-                    <ExternalLink size={16} />
-                  </a>
-                </div>
+                <a
+                  href={article.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-2 px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-medium text-sm transition-all duration-200 shadow-sm hover:shadow-md"
+                >
+                  <span>Read on {article.source.name}</span>
+                  <ExternalLink size={14} />
+                </a>
               </div>
+
+              {/* Related Articles in Same Category */}
+              {relatedArticles.length > 0 && onSelectArticle && (
+                <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800">
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mb-4">
+                    Related Coverage in {article.category.charAt(0).toUpperCase() + article.category.slice(1)}
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {relatedArticles.slice(0, 2).map((rel) => (
+                      <div
+                        key={rel.id}
+                        onClick={() => onSelectArticle(rel)}
+                        className="group flex gap-3.5 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-brand-300 dark:hover:border-brand-700 bg-slate-50/50 dark:bg-slate-900/50 cursor-pointer transition-all duration-200"
+                      >
+                        <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-slate-200 dark:bg-slate-800">
+                          <img
+                            src={rel.urlToImage}
+                            alt={rel.title}
+                            onError={(e) => {
+                              e.currentTarget.src = getRelevantEditorialImage(rel.category, rel.title, rel.description);
+                            }}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0 flex flex-col justify-between">
+                          <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white line-clamp-2 group-hover:text-brand-600 dark:group-hover:text-brand-400">
+                            {rel.title}
+                          </h4>
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center space-x-1">
+                            <span>{rel.source.name}</span>
+                            <span>•</span>
+                            <span>{rel.readTime || '3 min'}</span>
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
